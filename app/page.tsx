@@ -10,18 +10,30 @@ const socket = io('http://localhost:5000')
 export default function Page() {
   const [isSorting, setIsSorting] = useState(false)
   const [metrics, setMetrics] = useState({
-    objectsSorted: 0,
+    objectsSorted: {
+      red: 0,
+      blue: 0,
+      green: 0,
+      yellow: 0
+    },
     accuracy: 0,
     sortingRate: 0
+  })
+  const [ultrasonicData, setUltrasonicData] = useState({
+    front: 0,
+    left: 0,
+    right: 0
   })
 
   useEffect(() => {
     socket.on('sortingStatus', (data) => setIsSorting(data.isSorting))
     socket.on('performanceUpdate', setMetrics)
+    socket.on('ultrasonicData', setUltrasonicData)
 
     return () => {
       socket.off('sortingStatus')
       socket.off('performanceUpdate')
+      socket.off('ultrasonicData')
     }
   }, [])
 
@@ -45,9 +57,11 @@ export default function Page() {
             <CardTitle>Live Camera Feed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-200 h-64 flex items-center justify-center">
-              <p>Live camera feed placeholder</p>
-            </div>
+            <img 
+              src="http://localhost:5001/video_feed" 
+              alt="Live object detection feed"
+              className="w-full h-auto"
+            />
           </CardContent>
         </Card>
         
@@ -77,7 +91,13 @@ export default function Page() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <h3 className="font-semibold">Objects Sorted</h3>
-              <p className="text-2xl">{metrics.objectsSorted}</p>
+              <ul>
+                
+                <li>Red: {metrics.objectsSorted.red}</li>
+                <li>Blue: {metrics.objectsSorted.blue}</li>
+                <li>Green: {metrics.objectsSorted.green}</li>
+                <li>Yellow: {metrics.objectsSorted.yellow}</li>
+              </ul>
             </div>
             <div>
               <h3 className="font-semibold">Accuracy</h3>
@@ -86,6 +106,28 @@ export default function Page() {
             <div>
               <h3 className="font-semibold">Sorting Rate</h3>
               <p className="text-2xl">{metrics.sortingRate.toFixed(2)} objects/min</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Ultrasonic Sensor Data</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h3 className="font-semibold">Front Distance</h3>
+              <p className="text-2xl">{ultrasonicData.front.toFixed(2)} cm</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Left Distance</h3>
+              <p className="text-2xl">{ultrasonicData.left.toFixed(2)} cm</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Right Distance</h3>
+              <p className="text-2xl">{ultrasonicData.right.toFixed(2)} cm</p>
             </div>
           </div>
         </CardContent>
