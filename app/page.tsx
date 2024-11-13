@@ -24,32 +24,72 @@ export default function Page() {
     left: 0,
     right: 0
   })
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     socket.on('sortingStatus', (data) => setIsSorting(data.isSorting))
     socket.on('performanceUpdate', setMetrics)
-    socket.on('ultrasonicData', setUltrasonicData)
+    socket.on('ultrasonicData', (data) => {
+      if (data && typeof data === 'object') {
+        setUltrasonicData({
+          front: data.front || 0,
+          left: data.left || 0,
+          right: data.right || 0
+        })
+      } else {
+        console.error('Invalid ultrasonic data received:', data)
+      }
+    })
+    socket.on('detectionError', (data) => {
+      setError(data.message)
+    })
 
     return () => {
       socket.off('sortingStatus')
       socket.off('performanceUpdate')
       socket.off('ultrasonicData')
+      socket.off('detectionError')
     }
   }, [])
 
   const handleStart = async () => {
-    const response = await fetch('http://localhost:5000/start', { method: 'POST' })
-    if (response.ok) setIsSorting(true)
+    try {
+      const response = await fetch('http://localhost:5000/start', { method: 'POST' })
+      if (response.ok) {
+        setIsSorting(true)
+        setError(null)
+      } else {
+        throw new Error('Failed to start sorting')
+      }
+    } catch (err) {
+      setError('Failed to start sorting. Please try again.')
+    }
   }
 
   const handleStop = async () => {
-    const response = await fetch('http://localhost:5000/stop', { method: 'POST' })
-    if (response.ok) setIsSorting(false)
+    try {
+      const response = await fetch('http://localhost:5000/stop', { method: 'POST' })
+      if (response.ok) {
+        setIsSorting(false)
+        setError(null)
+      } else {
+        throw new Error('Failed to stop sorting')
+      }
+    } catch (err) {
+      setError('Failed to stop sorting. Please try again.')
+    }
   }
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Robotic Sorting Arm Dashboard</h1>
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -92,7 +132,6 @@ export default function Page() {
             <div>
               <h3 className="font-semibold">Objects Sorted</h3>
               <ul>
-                
                 <li>Red: {metrics.objectsSorted.red}</li>
                 <li>Blue: {metrics.objectsSorted.blue}</li>
                 <li>Green: {metrics.objectsSorted.green}</li>
